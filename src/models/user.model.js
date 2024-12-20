@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema({
 }, {timestamps:true})
 
 userSchema.pre("save", async function(next){
-    if(!(this.isModified(this.password))){
+    if(!this.isModified("password")){
         return next();
     }
     this.password = await bcrypt.hash(this.password,10)
@@ -55,12 +55,12 @@ userSchema.methods.isPasswordCorrect = async function(password){
 
 userSchema.methods.generateAccessToken = function(){
     const accessToken = jwt.sign({ 
-      id:this._id,
+      _id:this._id,
       username:this.username,
       email:this.email     
      }, 
      process.env.ACCESS_TOKEN_SECRET, 
-     { algorithm: 'RS256',
+     { 
        expiresIn: process.env.ACCESS_TOKEN_EXPIRY
       });
 
@@ -69,11 +69,11 @@ userSchema.methods.generateAccessToken = function(){
 
 userSchema.methods.generateRefreshToken = function(){
     const refreshToken = jwt.sign({ 
-      id:this._id,
+      _id:this._id,
      }, 
      process.env.REFRESH_TOKEN_SECRET, 
-     { algorithm: 'RS256',
-       expiresIn: process.env.REFRESH_TOKEN_SECRET
+     { 
+       expiresIn: process.env.REFRESH_TOKEN_EXPIRY
       });
 
      return refreshToken; 
