@@ -1,6 +1,6 @@
 import { Router } from "express"
 import { upload } from "../middlewares/multer.middleware.js"
-import { register, login, logout } from "../controllers/user.controllers.js"
+import { register, login, logout, updateUserDetails, updateAvatar, updateCoverImage, changePassword } from "../controllers/user.controllers.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 
 
@@ -24,5 +24,9 @@ router.route("/login").post(login)
 // Secured Routes
 
 router.route("/logout").post(verifyJWT, logout)
+router.route("/update-user-details").patch(verifyJWT, updateUserDetails)
+router.route("/update-avatar").patch(verifyJWT, upload.single("avatar"), updateAvatar)
+router.route("/update-coverimage").patch(verifyJWT, upload.single("coverImage"), updateCoverImage)
+router.route("/change-password").patch(verifyJWT, changePassword)
 
 export default router

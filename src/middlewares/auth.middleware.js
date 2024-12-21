@@ -26,7 +26,8 @@ const verifyJWT = async (req,_,next) => {
         next()
     } 
     catch (error) {
-        throw new ApiError(401, "Error while verifying JWT", error)
+        throw error
+        // throw new ApiError(401, "Error while verifying JWT", error)
         // console.log("Error while verifying JWT", error)
     }
    

@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import { ApiError } from "./apiError.js";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -27,9 +28,18 @@ const uploadOnCloudinary = async (localPath) => {
 
 const destroyOnCloudinary = async (fileUrl) => {
   try {
-    return await cloudinary.uploader.destroy(fileUrl);
+    if(!fileUrl){
+      return;
+    }
+    const regex = /\/upload\/(?:v\d+\/)?([^/.]+)/;
+    const match = fileUrl.match(regex);
+    const publicId = match ? match[1] : null;
+
+    await cloudinary.uploader.destroy(publicId);
+
   } catch (error) {
-    console.log("Cloudinary Destroy Error: ", error);
+    // console.log("Cloudinary Destroy Error: ", error);
+    throw new ApiError(501,"Something went wrong when destroying the file on cloudinary!")
   }
 };
 

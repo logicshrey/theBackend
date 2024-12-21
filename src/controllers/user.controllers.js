@@ -2,7 +2,7 @@ import { ApiError } from "../utils/apiError.js"
 import { ApiResponse } from "../utils/apiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { User } from "../models/user.model.js"
-import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { uploadOnCloudinary, destroyOnCloudinary } from "../utils/cloudinary.js"
 
 
 const cookieOptions = {
@@ -148,4 +148,140 @@ const logout = asyncHandler( async (req,res) => {
     .json(new ApiResponse(200,{},"User logged out successfully!"))
 })
 
-export{ register, login, logout }
+const updateUserDetails = asyncHandler( async (req,res) => {
+
+      const {fullName,email} = req.body
+
+      if(!fullName){
+        throw new ApiError(400,"Fullname is required!")
+      }
+
+      if(!email){
+        throw new ApiError(400,"Email is required!")
+      }
+
+      const user = await User.findByIdAndUpdate(req.user?._id,
+        {
+            $set:{
+                fullName,
+                email
+            }
+        },
+        {
+            new:true
+        }
+      ).select("-password -refreshToken")
+
+      if(!user){
+        throw new ApiError(500,"Something went wrong while updating user details!")
+      }
+
+    res
+    .status(200)
+    .json(new ApiResponse(200,user,"User details updated successfully!"))
+
+} )
+
+const updateAvatar = asyncHandler( async (req,res) => {
+    
+    const avatarLocalPath = req.file?.path
+
+    if(!avatarLocalPath){
+        throw new ApiError(400,"Avatar is required!")
+    }
+    
+    const user = await User.findById(req.user?._id)
+
+    if(!user){
+        throw new ApiError(500,"Something went wrong while updating user avatar!")
+    }
+
+    await destroyOnCloudinary(user.avatar)
+
+    const newAvatar = await uploadOnCloudinary(avatarLocalPath)
+
+    if(!newAvatar){
+        throw new ApiError(500,"Something went wrong while uploading avatar on cloudinary!")
+    }
+
+    user.avatar = newAvatar.url
+    user.save({validateBeforeSave:false})
+    
+    res
+    .status(200)
+    .json(new ApiResponse(200,{},"Avatar updated successfully!"))
+} )
+
+const updateCoverImage = asyncHandler( async (req,res) => {
+    
+    const coverImageLocalPath = req.file?.path
+
+    if(!coverImageLocalPath){
+        throw new ApiError(400,"Cover Image is required!")
+    }
+    
+    const user = await User.findById(req.user?._id)
+
+    if(!user){
+        throw new ApiError(500,"Something went wrong while updating the cover image!")
+    }
+
+    await destroyOnCloudinary(user.coverImage)
+
+    const newCoverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    if(!newCoverImage){
+        throw new ApiError(500,"Something went wrong while uploading cover image on cloudinary!")
+    }
+
+    user.coverImage = newCoverImage.url
+    user.save({validateBeforeSave:false})
+    
+    res
+    .status(200)
+    .json(new ApiResponse(200,{},"Cover Image updated successfully!"))
+} )
+
+
+const changePassword = asyncHandler( async(req,res) => {
+
+    const {oldPassword, newPassword} = req.body
+
+    if(!oldPassword){
+        throw new ApiError(401,"Current Password is required!")
+    }
+    
+    if(!newPassword){
+        throw new ApiError(401,"New Password is required!")
+    }
+
+    const user = await User.findById(req.user?._id)
+
+    if(!user){
+        throw new ApiError(500,"Something went wrong while changing the password!")
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(oldPassword)
+
+    if(!isPasswordValid){
+        throw new ApiError(401,"Invalid Current Password!")
+    }
+
+    user.password = newPassword
+    user.save({validateBeforeSave:false})
+
+    res
+    .status(200)
+    .json(new ApiResponse(200,{},"Password Changed Successfully!"))
+
+} )
+
+export{ 
+    register, 
+    login, 
+    logout, 
+    updateUserDetails, 
+    updateAvatar, 
+    updateCoverImage,
+    changePassword 
+}
