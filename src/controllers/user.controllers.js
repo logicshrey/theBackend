@@ -3,6 +3,7 @@ import { ApiResponse } from "../utils/apiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { User } from "../models/user.model.js"
 import { uploadOnCloudinary, destroyOnCloudinary } from "../utils/cloudinary.js"
+import mongoose from "mongoose"
 
 
 const cookieOptions = {
@@ -276,6 +277,61 @@ const changePassword = asyncHandler( async(req,res) => {
 
 } )
 
+const getWatchHistory = asyncHandler( async(req,res) => {
+    
+    const user = await User.aggregate([
+        {
+            $match:{
+                _id: mongoose.Types.ObjectId(req.user?._id)
+            }
+        },
+        {
+            $lookup:{
+                from:"videos",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory",
+
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",
+
+                            pipeline:[
+                                {
+                                    $project:{
+                                        username:1,
+                                        email:1,
+                                        _id:1
+                                    }
+                                },
+                            ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    if(!user){
+        throw new ApiError(500,"Something went wrong while fetching watch history!")
+    }
+
+    res
+    .status(200)
+    .json(new ApiResponse(200,user[0].watchHistory,"Watch history feteched successfully!"))
+} )
+
 export{ 
     register, 
     login, 
@@ -283,5 +339,6 @@ export{
     updateUserDetails, 
     updateAvatar, 
     updateCoverImage,
-    changePassword 
+    changePassword,
+    getWatchHistory 
 }

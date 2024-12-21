@@ -34,10 +34,10 @@ const userSchema = new mongoose.Schema({
       refreshToken:{
         type: String
       },
-      watchHistory:{
+      watchHistory:[{
         type: Schema.Types.ObjectId,
         ref:"Video"
-      } 
+      }] 
 
 }, {timestamps:true})
 
