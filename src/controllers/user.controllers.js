@@ -283,7 +283,7 @@ const getWatchHistory = asyncHandler( async(req,res) => {
     const user = await User.aggregate([
         {
             $match:{
-                _id: mongoose.Types.ObjectId(req.user?._id)
+                _id: new mongoose.Types.ObjectId(req.user?._id)
             }
         },
         {
@@ -335,15 +335,16 @@ const getWatchHistory = asyncHandler( async(req,res) => {
 
 const addVideoToWatchHistory = asyncHandler( async (req,res) => {
 
-    const { videoID } = req.params
-
-    if(!videoID){
+    const {videoId} = req.params
+    
+    if(!videoId){
         new ApiError(404,"Video Id not found!")
     }
-
+    
+    console.log("Video ID: ",videoId)
     const user = await User.findById(req.user?._id)
     
-    user.watchHistory.push(videoID)
+    user.watchHistory.push(videoId)
     user.save({validateBeforeSave:false})
 
     res

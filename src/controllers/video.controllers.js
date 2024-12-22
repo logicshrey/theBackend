@@ -53,11 +53,11 @@ const uploadVideo = asyncHandler( async(req,res) => {
     })
 
     const uploadedVideo = await Video.findById(video._id)
-
+  
     if(!uploadedVideo){
         throw new ApiError(500,"Something went wrong while uploading video!")
     }
-
+    
     res
     .status(200)
     .json(new ApiResponse(200,uploadedVideo,"Video Uploaded Successfully!"))
