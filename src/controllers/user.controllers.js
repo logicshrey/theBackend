@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 import { User } from "../models/user.model.js"
 import { uploadOnCloudinary, destroyOnCloudinary } from "../utils/cloudinary.js"
 import mongoose from "mongoose"
+import jwt from "jsonwebtoken"
 
 
 const cookieOptions = {
@@ -332,6 +333,56 @@ const getWatchHistory = asyncHandler( async(req,res) => {
     .json(new ApiResponse(200,user[0].watchHistory,"Watch history feteched successfully!"))
 } )
 
+const addVideoToWatchHistory = asyncHandler( async (req,res) => {
+
+    const { videoID } = req.params
+
+    if(!videoID){
+        new ApiError(404,"Video Id not found!")
+    }
+
+    const user = await User.findById(req.user?._id)
+    
+    user.watchHistory.push(videoID)
+    user.save({validateBeforeSave:false})
+
+    res
+    .status(200)
+    .json(new ApiResponse(200,{},"Video added to watch history!")) 
+
+} )
+
+
+const refreshAccessToken = asyncHandler( async (req,res) => {
+      
+    const {incomingRefreshToken} = req.cookies?.refreshToken
+    
+    if(!incomingRefreshToken){
+        throw new ApiError(401,"Refresh token not found, invalid request!")
+    }
+
+    const decodedToken = jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
+
+    const user = await User.findById(decodedToken?._id)
+    
+    if(!user){
+        throw new ApiError(401,"User not found, Invalid Refresh Token!")
+    }
+
+    if(user.refreshToken != incomingRefreshToken){
+        throw new ApiError(401,"Invalid Refresh Token!")
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user)
+
+    res
+    .status(200)
+    .cookie("accessToken",accessToken,cookieOptions)
+    .cookie('refreshToken',refreshToken,cookieOptions)
+    .json(new ApiResponse(200,{},"Access Token Refreshed!"))
+
+} )
+
 export{ 
     register, 
     login, 
@@ -340,5 +391,7 @@ export{
     updateAvatar, 
     updateCoverImage,
     changePassword,
-    getWatchHistory 
+    getWatchHistory,
+    addVideoToWatchHistory,
+    refreshAccessToken 
 }

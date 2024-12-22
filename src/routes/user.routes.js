@@ -1,6 +1,6 @@
 import { Router } from "express"
 import { upload } from "../middlewares/multer.middleware.js"
-import { register, login, logout, updateUserDetails, updateAvatar, updateCoverImage, changePassword, getWatchHistory } from "../controllers/user.controllers.js"
+import { register, login, logout, updateUserDetails, updateAvatar, updateCoverImage, changePassword, getWatchHistory, addVideoToWatchHistory } from "../controllers/user.controllers.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 
 
@@ -29,5 +29,6 @@ router.route("/update-avatar").patch(verifyJWT, upload.single("avatar"), updateA
 router.route("/update-coverimage").patch(verifyJWT, upload.single("coverImage"), updateCoverImage)
 router.route("/change-password").patch(verifyJWT, changePassword)
 router.route("/watch-history").get(verifyJWT,getWatchHistory)
+router.route("/add-video-to-watch-history/:videoId").post(verifyJWT,addVideoToWatchHistory)
 
 export default router
