@@ -65,6 +65,165 @@ const uploadVideo = asyncHandler( async(req,res) => {
 
 } )
 
+const deleteVideo = asyncHandler( async(req,res) => {
+
+    const  { videoId } = req.params
+
+    if(!videoId){
+        new ApiError(404,"Video Id not found!")
+    }
+
+    const video = await Video.findByIdAndDelete(videoId)
+
+    if(!video){
+        new ApiError(500,"Something went wrong while deleting video!")
+    }
+
+    await destroyOnCloudinary(video.videoFile)
+    await destroyOnCloudinary(video.thumbnail)
+
+    res
+    .status(200)
+    .json(new ApiResponse(200,video,"Video deleted successfully!"))
+} )
+
+const editVideoDetails = asyncHandler( async(req,res) => {
+
+    const { title, description } = req.body
+    const { videoId } = req.params
+
+    if(!videoId){
+        new ApiError(400,"Video Id not found!")
+    }
+
+    if(!title){
+        new ApiError(400,"Title is required!")
+    }
+
+    if(!description){
+        new ApiError(400,"Description is required!")
+    }
+
+    const video = await Video.findByIdAndUpdate(videoId,
+        {
+            $set:{
+                title,
+                description
+            }
+        },
+        {
+            new:true
+        }
+    )
+
+    if(!video){
+        throw new ApiError(500,"Something went wrong while editing video details!")
+    }
+
+    res
+    .status(200)
+    .json(new ApiResponse(200,video,"Video details edited successfully!"))
+} )
+
+const getVideoDetailsById = asyncHandler( async(req,res) => {
+
+    const {videoId} = req.params
+
+    if(!videoId){
+        throw new ApiError(400,"Video Id is required!")
+    }
+
+
+    const video = await Video.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(videoId)
+            }
+        },
+        {
+            $lookup:{
+                from:"users",
+                localField:"owner",
+                foreignField:"_id",
+                as:"owner",
+
+                pipeline:[
+                    {
+                        $project:{
+                            username:1,
+                            email:1,
+                            _id:1,
+                            fullName:1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields:{
+                owner: {
+                    $first: "$owner"
+                }
+            }
+        }
+    ])
+
+    if(!video){
+       throw new ApiError(400,"Video not found! Invalid video Id")
+    }
+    
+    res
+    .status(200)
+    .json(new ApiResponse(200,video[0],"Video details fetched successfully!"))
+    
+} )
+
+const getAllVideos = asyncHandler( async(req,res) => {
+
+    const videos = await Video.find({})
+
+    if(!videos){
+        throw new ApiError(500,"Something went wrong while fetching videos!")
+    }
+
+    res
+    .status(200)
+    .json(new ApiResponse(200,videos,"All videos fetched successfully!"))
+
+} )
+
+const updateVideoViews = asyncHandler( async(req,res) => {
+
+    const { videoId } = req.params
+    
+    if(!videoId){
+        throw new ApiError(400,"Video Id is missing!")
+    }
+
+    const video = await Video.findByIdAndUpdate(videoId,
+        {
+          $inc:{ views: 1 }
+        },
+        {
+            new:true
+        }
+    )
+
+    if(!video){
+        throw new ApiError(400,"Invalid Video Id!!")
+    }
+
+    res
+    .status(200)
+    .json(new ApiResponse(200,video,"Views on video is updated!"))
+
+} )
+
 export {
-    uploadVideo
+    uploadVideo,
+    deleteVideo,
+    editVideoDetails,
+    getVideoDetailsById,
+    getAllVideos,
+    updateVideoViews
 }
